@@ -1,1 +1,77 @@
+@Autonomous(name="Autonomo Tag 39")
+public class AutonomoTag39 extends LinearOpMode {
+    
+    // ... (declaração dos motores e limelight igual ao anterior)
 
+    @Override
+    public void runOpMode() {
+        // ... (inicialização do hardware igual ao anterior)
+        
+        limelight.pipelineSwitch(0); // Use a pipeline que você configurou como AprilTag
+        limelight.start();
+
+        telemetry.addLine("Pronto. Pressione Play para procurar a Tag 39.");
+        telemetry.update();
+        waitForStart();
+
+        // 1. FASE DE BUSCA: Fica parado esperando a Tag aparecer (com timeout de 3 segundos)
+        boolean achouTag = false;
+        ElapsedTime timer = new ElapsedTime();
+        
+        while (opModeIsActive() && timer.seconds() < 3.0) {
+            LLResult result = limelight.getLatestResult();
+            if (result != null && result.isValid()) {
+                for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+                    if (tag.getFiducialId() == 39) {
+                        achouTag = true;
+                        break;
+                    }
+                }
+            }
+            if (achouTag) break; // Sai do loop de busca se achou
+        }
+
+        // 2. FASE DE AÇÃO: Se achou, executa o movimento
+        if (achouTag && opModeIsActive()) {
+            telemetry.addLine("Tag 39 encontrada! Iniciando alinhamento...");
+            telemetry.update();
+            
+            // Exemplo: Alinhar por 2 segundos (ou até centralizar)
+            ElapsedTime alignTimer = new ElapsedTime();
+            while (opModeIsActive() && alignTimer.seconds() < 2.0) {
+                LLResult result = limelight.getLatestResult();
+                if (result != null && result.isValid()) {
+                    for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+                        if (tag.getFiducialId() == 39) {
+                            double tx = tag.getTargetXDegrees();
+                            // Se estiver centralizado (perto de 0), para
+                            if (Math.abs(tx) < 1.0) {
+                                pararMotores();
+                                alignTimer.reset(); // Opcional: para o timer se já centralizou
+                                break;
+                            }
+                            // Movimento lateral para centralizar
+                            double power = tx * 0.03; // Ajuste o ganho se necessário
+                            frontLeftMotor.setPower(-power);
+                            backLeftMotor.setPower(power);
+                            frontRightMotor.setPower(-power);
+                            backRightMotor.setPower(power);
+                        }
+                    }
+                }
+            }
+            pararMotores(); // Garante que os motores parem ao fim
+        } else {
+            telemetry.addLine("Tag 39 não encontrada no tempo limite.");
+            telemetry.update();
+            sleep(1000); // Mostra a mensagem por 1 segundo
+        }
+    }
+
+    private void pararMotores() {
+        frontLeftMotor.setPower(0);
+        backLeftMotor.setPower(0);
+        frontRightMotor.setPower(0);
+        backRightMotor.setPower(0);
+    }
+}
